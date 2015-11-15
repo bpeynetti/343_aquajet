@@ -84,6 +84,7 @@ pool_t *pool_create(int queue_size, int num_threads)
     int t=0;
     for (t=0;t<pool->thread_count;t++)
     {
+        printf("creating thread %d \n",t+1);
         //assign the function and the arguments that each thread will take
         pthread_create(&(pool->threads[t]),NULL,(void*) &thread_do_work,(void*) pool);
     }
@@ -92,7 +93,7 @@ pool_t *pool_create(int queue_size, int num_threads)
     pool->queue_tail=NULL;
     
     pthread_mutex_unlock(&(pool->lock));
-    printf("Created the pool\n");
+    printf("Created the pool and released lock\n");
     return pool;
 }
 
@@ -142,9 +143,12 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     }
     
     pool->current_queue_size++;
+    printf("releasing the lock on pool\n");
     pthread_mutex_unlock(&(pool->lock));
+    printf("released lock on pool \n");
 
-    printf("Finished adding task \n");
+    pthread_cond_signal(&(pool->notify));
+    printf("Finished adding task,broadcasting \n");
     return 0;
     
 }
@@ -154,9 +158,10 @@ pool_task_t* get_next_task(pool_t *pool)
 {
     //note -> we need to free the node after we return it and extract the information!
     //this will just return and fix the list
-
+    printf("getting a task, out of %d available\n",pool->current_queue_size);
     if (pool->queue_head==NULL)
     {
+        printf("no tasks \n");
         return NULL;
     }
     
@@ -172,6 +177,12 @@ pool_task_t* get_next_task(pool_t *pool)
     }
 
     pool->current_queue_size--;
+    //if down to 0, set head and tail to null
+    if (pool->current_queue_size==0)
+    {
+        pool->queue_tail=NULL;
+        pool->queue_head=NULL;
+    }
     return temp;
 
 }
@@ -201,16 +212,22 @@ static void *thread_do_work(pool_t *pool)
 { 
 
     printf("Waiting ... \n");
+    //lock it before you go into the loop, for unlocking later
+    pthread_mutex_lock(&(pool->lock));
     while(1) {
         
         //lock the pool
-        pthread_mutex_lock(&(pool->lock));
-        
+        // printf("locking the pool \n");
+        // pthread_mutex_lock(&(pool->lock));
+        // printf("got the lock on the pool \n");
         //get the function and argument
         pool_task_t* task;
         task = get_next_task(pool);
         while(task!=NULL)
         {
+            printf("got a task from the pool\n");
+            printf("task type is %d \n",task->taskType);
+            printf("task: %p\n",task);
             //don't need it for now, so unlock it
             pthread_mutex_unlock(&(pool->lock));
             
@@ -219,24 +236,29 @@ static void *thread_do_work(pool_t *pool)
             if (task->taskType==PARSE)
             {
                 //then ask for the parsing with task req as one of the arguments
-                
+                printf("------- Parsing task\n");
                 parse_request(task->connfd,&(task->req));
                 //and add to the list 
-                // struct request req = task->req;
+                struct request req = task->req;
+                printf("task is: %s \n",req.resource);
                 //extract priority (not needed yet)
-
+                printf("adding process task to list\n");
                 pool_add_task(pool,PROCESS,NULL,NULL,task->connfd,task->req);
                 
             }
             
             else 
             {
+                printf("-------- processing task \n");
+                struct request req = task->req;
+                printf("Task is: %s for user: %d, seat %d, priority: %d  \n",req.resource,req.user_id,req.seat_id,req.customer_priority);
                 process_request(task->connfd,&(task->req));
                 close(task->connfd);
             }
 
             
             //free the node
+            printf("freeing the location of task : %p\n",task);
             free(task);
             
             //lock pool and get task
@@ -245,7 +267,7 @@ static void *thread_do_work(pool_t *pool)
             task = get_next_task(pool);
         }
         //lock it so we can wait
-        printf("Nothing, so locking and releasing\n");
+        printf("Nothing, so releasing\n");
        // pthread_mutex_lock(&(pool->lock));
         //no more tasks, so wait 
         printf("Waiting now \n");

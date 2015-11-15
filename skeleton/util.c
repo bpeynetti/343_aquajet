@@ -40,6 +40,7 @@ void parse_request(int connfd, struct request* req)
                               "</body></html>\n";
     
     get_line(connfd, buf, BUFSIZE);
+    printf("instruction: %s \n",buf);
     
     //parse out instruction
     while( !isspace(buf[j]) && (i < sizeof(instr) - 1))

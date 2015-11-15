@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 #include "seats.h"
 
@@ -33,6 +34,7 @@ void view_seat(char* buf, int bufsize,  int seat_id, int customer_id, int custom
     {
         if(curr->id == seat_id)
         {
+            pthread_mutex_lock(&(curr->lock));
             if(curr->state == AVAILABLE || (curr->state == PENDING && curr->customer_id == customer_id))
             {
                 snprintf(buf, bufsize, "Confirm seat: %d %c ?\n\n",
@@ -44,6 +46,7 @@ void view_seat(char* buf, int bufsize,  int seat_id, int customer_id, int custom
             {
                 snprintf(buf, bufsize, "Seat unavailable\n\n");
             }
+            pthread_mutex_unlock(&(curr->lock));
 
             return;
         }
@@ -127,6 +130,7 @@ void load_seats(int number_of_seats)
         temp->customer_id = -1;
         temp->state = AVAILABLE;
         temp->next = NULL;
+        pthread_mutex_init(&(temp->lock),NULL);
         
         if (seat_header == NULL)
         {

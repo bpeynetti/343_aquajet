@@ -95,7 +95,7 @@ int main(int argc,char *argv[])
             The lines below will need to be modified! Some may need to be moved
             to other locations when you make your server multithreaded.
         *********************************************************************/
-        printf("waiting\n");
+        printf("Got new request! \n");
         //printf("%d",connfd);
         
         //add a request to parse to the threadpool
