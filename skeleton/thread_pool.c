@@ -144,7 +144,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     pool->current_queue_size++;
     pthread_mutex_unlock(&(pool->lock));
 
-    printf("Finished task \n");
+    printf("Finished adding task \n");
     return 0;
     
 }

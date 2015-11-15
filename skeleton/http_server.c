@@ -102,7 +102,7 @@ int main(int argc,char *argv[])
         int error;
         struct request req={0,0,0,NULL};
         error = pool_add_task(threadpool,1,NULL,NULL,connfd,req);
-        
+        printf("waiting for new request\n");
         if (error==-1)
         {
             //cannot handle request
