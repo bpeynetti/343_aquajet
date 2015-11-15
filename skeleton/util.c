@@ -23,7 +23,7 @@ int get_line(int, char*,int);
 
 int parse_int_arg(char* filename, char* arg);
 
-void parse_request(int connfd, struct request* req)
+int parse_request(int connfd, struct request* req)
 {
     printf("Inside parsing\n");
     char buf[BUFSIZE+1];
@@ -56,9 +56,10 @@ void parse_request(int connfd, struct request* req)
 
     //Only accept GET requests
     if (strncmp(instr, "GET", 3) != 0) {
+        printf("bad request\n");
         writenbytes(connfd, bad_request, strlen(bad_request));
         close(connfd);
-        return;
+        return -1;
     }
 
     //parse out filename
@@ -107,6 +108,8 @@ void parse_request(int connfd, struct request* req)
     req->seat_id = parse_int_arg(file, "seat=");
     req->user_id = parse_int_arg(file, "user=");
     req->customer_priority = parse_int_arg(file, "priority=");
+
+    return 0;
 }
 
 void process_request(int connfd, struct request* req)

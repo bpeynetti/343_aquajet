@@ -8,7 +8,7 @@ struct request {
     char* resource;
 };
 
-void parse_request(int, struct request*);
+int parse_request(int, struct request*);
 void process_request(int, struct request*);
 
 #endif
