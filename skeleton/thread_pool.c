@@ -109,9 +109,9 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     //if we implement priority queue, then add the proper way to a priority queue
     
     //hold on to the queue while I modify it
-    printf("Waiting for pool\n");
+    //printf("Waiting for pool\n");
     pthread_mutex_lock(&(pool->lock));
-    printf("Got the lock \n");
+    //printf("Got the lock \n");
     //if size of queue is full, return -1
     if (pool->task_queue_size_limit==pool->current_queue_size){
         //too big, can't do this
@@ -143,12 +143,12 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     }
     
     pool->current_queue_size++;
-    printf("releasing the lock on pool\n");
+    //printf("releasing the lock on pool\n");
     pthread_mutex_unlock(&(pool->lock));
-    printf("released lock on pool \n");
-
-    pthread_cond_signal(&(pool->notify));
+    //printf("released lock on pool \n");
+    
     printf("Finished adding task,broadcasting \n");
+    pthread_cond_signal(&(pool->notify));
     return 0;
     
 }
@@ -227,7 +227,7 @@ static void *thread_do_work(pool_t *pool)
         {
             printf("got a task from the pool\n");
             printf("task type is %d \n",task->taskType);
-            printf("task: %p\n",task);
+            //printf("task: %p\n",task);
             //don't need it for now, so unlock it
             pthread_mutex_unlock(&(pool->lock));
             
@@ -267,10 +267,10 @@ static void *thread_do_work(pool_t *pool)
             task = get_next_task(pool);
         }
         //lock it so we can wait
-        printf("Nothing, so releasing\n");
+        ///printf("Nothing, so releasing\n");
        // pthread_mutex_lock(&(pool->lock));
         //no more tasks, so wait 
-        printf("Waiting now \n");
+        //printf("Waiting now \n");
         pthread_cond_wait(&(pool->notify),&(pool->lock));
         printf("Waking up! \n");
         

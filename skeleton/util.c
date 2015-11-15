@@ -25,6 +25,7 @@ int parse_int_arg(char* filename, char* arg);
 
 void parse_request(int connfd, struct request* req)
 {
+    printf("Inside parsing\n");
     char buf[BUFSIZE+1];
     char instr[20];
     char file[100];
@@ -39,6 +40,7 @@ void parse_request(int connfd, struct request* req)
                               "<html><body><h2>BAD REQUEST</h2>"\
                               "</body></html>\n";
     
+    printf("getting line\n");
     get_line(connfd, buf, BUFSIZE);
     printf("instruction: %s \n",buf);
     

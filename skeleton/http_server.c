@@ -81,7 +81,7 @@ int main(int argc,char *argv[])
     listen(listenfd, 10);
 
     // TODO: Initialize your threadpool!
-    threadpool = pool_create(1000,2);
+    threadpool = pool_create(1000,3);
     // This while loop "forever", handling incoming connections
     while(1)
     {
@@ -95,18 +95,18 @@ int main(int argc,char *argv[])
             The lines below will need to be modified! Some may need to be moved
             to other locations when you make your server multithreaded.
         *********************************************************************/
-        printf("Got new request! \n");
+        printf("\t\t Got new request! \n");
         //printf("%d",connfd);
         
         //add a request to parse to the threadpool
         int error;
         struct request req={0,0,0,NULL};
         error = pool_add_task(threadpool,1,NULL,NULL,connfd,req);
-        printf("waiting for new request\n");
+        printf("\t\t waiting for new request\n");
         if (error==-1)
         {
             //cannot handle request
-            printf("Cannot add to queue \n");
+            printf("\t\t Cannot add to queue \n");
             close(connfd);
         }
         
