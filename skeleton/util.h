@@ -1,7 +1,7 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-struct request{
+struct request {
     int seat_id;
     int user_id;
     int customer_priority;

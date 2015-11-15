@@ -10,6 +10,7 @@ typedef enum
 
 typedef struct seat_struct
 {
+    pthread_mutex_t lock;
     int id;
     int customer_id;
     seat_state_t state;

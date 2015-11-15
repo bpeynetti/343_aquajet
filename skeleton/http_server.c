@@ -10,10 +10,10 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
+#include "util.h"
 
 #include "thread_pool.h"
 #include "seats.h"
-#include "util.h"
 
 #define BUFSIZE 1024
 #define FILENAMESIZE 100
@@ -23,6 +23,7 @@ void shutdown_server(int);
 int listenfd;
 
 // TODO: Declare your threadpool!
+pool_t* threadpool;
 
 int main(int argc,char *argv[])
 {
@@ -80,7 +81,7 @@ int main(int argc,char *argv[])
     listen(listenfd, 10);
 
     // TODO: Initialize your threadpool!
-
+    threadpool = pool_create(1000,2);
     // This while loop "forever", handling incoming connections
     while(1)
     {
@@ -94,13 +95,27 @@ int main(int argc,char *argv[])
             The lines below will need to be modified! Some may need to be moved
             to other locations when you make your server multithreaded.
         *********************************************************************/
+        printf("waiting\n");
+        //printf("%d",connfd);
         
-        struct request req;
-        // parse_request fills in the req struct object
-        parse_request(connfd, &req);
-        // process_request reads the req struct and processes the command
-        process_request(connfd, &req);
-        close(connfd);
+        //add a request to parse to the threadpool
+        int error;
+        struct request req={0,0,0,NULL};
+        error = pool_add_task(threadpool,1,NULL,NULL,connfd,req);
+        
+        if (error==-1)
+        {
+            //cannot handle request
+            printf("Cannot add to queue \n");
+            close(connfd);
+        }
+        
+        // struct request req;
+        // // parse_request fills in the req struct object
+        // parse_request(connfd, &req);
+        // // process_request reads the req struct and processes the command
+        // process_request(connfd, &req);
+        // close(connfd);
     }
 }
 
@@ -108,7 +123,7 @@ void shutdown_server(int signo){
     printf("Shutting down the server...\n");
     
     // TODO: Teardown your threadpool
-
+    pool_destroy(threadpool);
     // TODO: Print stats about your ability to handle requests.
     unload_seats();
     close(listenfd);
