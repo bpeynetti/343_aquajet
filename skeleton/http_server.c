@@ -81,7 +81,8 @@ int main(int argc,char *argv[])
     listen(listenfd, 10);
 
     // TODO: Initialize your threadpool!
-    threadpool = pool_create(1000,2);
+    threadpool = pool_create(1000,8);
+    initialize_standby();
     // This while loop "forever", handling incoming connections
     while(1)
     {
@@ -126,6 +127,7 @@ void shutdown_server(int signo){
     pool_destroy(threadpool);
     // TODO: Print stats about your ability to handle requests.
     unload_seats();
+    kill_standby();
     close(listenfd);
     exit(0);
 }

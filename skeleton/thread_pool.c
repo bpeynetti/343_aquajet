@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include "util.h"
 #include "thread_pool.h"
-
+#include "seats.h"
 
 /**
  *  @struct threadpool_task
@@ -16,8 +16,7 @@
  *  @var argument Argument to be passed to the function.
  */
 
-#define MAX_THREADS 1
-#define STANDBY_SIZE 10
+#define MAX_THREADS 10
 
 // enum task_t{
 //     PARSE,
@@ -225,10 +224,10 @@ int pool_destroy(pool_t *pool)
     }
     // destroy mutex
     pthread_mutex_destroy(&(pool->lock));
-    // destroy condition
+    // destroy conditionj
     pthread_cond_destroy(&(pool->notify));
     //destroy queue
-    printf("destroying queue\n");
+    printf("destroying queue\n"); 
     queueDelete(pool->queue_head);
  
     //destroy pool
@@ -283,11 +282,11 @@ static void *thread_do_work(pool_t *pool)
 
         while(task!=NULL)
         {
-            printf("got a task from the pool\n");
-            printf("task type is %d \n",task->taskType);
-            printf("task: %p\n",task);
+            //printf("got a task from the pool\n");
+            //printf("task type is %d \n",task->taskType);
+            //printf("task: %p\n",task);
             //don't need it for now, so unlock it
-            printf("task tail is %p \n",pool->queue_tail);
+            //printf("task tail is %p \n",pool->queue_tail);
             
             //if task is parsing, then parse it
             //and add the task to the stuff
@@ -331,7 +330,7 @@ static void *thread_do_work(pool_t *pool)
 
             
             //free the node
-            printf("freeing the location of task : %p\n",task);
+            //printf("freeing the location of task : %p\n",task);
             // task->connfd = 0;
             free(task);
             
@@ -342,7 +341,7 @@ static void *thread_do_work(pool_t *pool)
             pthread_mutex_unlock(&(pool->lock));
         }
         //lock it so we can wait
-        printf("Nothing, so releasing\n");
+        //printf("Nothing, so releasing\n");
         pthread_mutex_lock(&(pool->lock));
         pthread_cond_wait(&(pool->notify),&(pool->lock));
         printf("Waking up! \n");
