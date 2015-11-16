@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
+
 #include "util.h"
 
 #include "thread_pool.h"
@@ -102,7 +104,11 @@ int main(int argc,char *argv[])
         //add a request to parse to the threadpool
         int error;
         struct request req={0,0,0,NULL};
-        error = pool_add_task(threadpool,1,NULL,NULL,connfd,req);
+        //received a request, so add to the number of requests
+        float arrival_time;
+        arrival_time = clock();
+        
+        error = pool_add_task(threadpool,1,NULL,NULL,connfd,req,arrival_time);
         printf("\t\t waiting for new request\n");
         if (error==-1)
         {

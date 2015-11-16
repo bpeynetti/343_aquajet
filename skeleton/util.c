@@ -25,7 +25,7 @@ int parse_int_arg(char* filename, char* arg);
 
 int parse_request(int connfd, struct request* req)
 {
-    printf("Inside parsing\n");
+    //printf("Inside parsing\n");
     char buf[BUFSIZE+1];
     char instr[20];
     char file[100];
@@ -40,9 +40,9 @@ int parse_request(int connfd, struct request* req)
                               "<html><body><h2>BAD REQUEST</h2>"\
                               "</body></html>\n";
     
-    printf("getting line\n");
+    //printf("getting line\n");
     get_line(connfd, buf, BUFSIZE);
-    printf("instruction: %s \n",buf);
+    //printf("instruction: %s \n",buf);
     
     //parse out instruction
     while( !isspace(buf[j]) && (i < sizeof(instr) - 1))
@@ -56,7 +56,7 @@ int parse_request(int connfd, struct request* req)
 
     //Only accept GET requests
     if (strncmp(instr, "GET", 3) != 0) {
-        printf("bad request. closing connection \n");
+        //printf("bad request. closing connection \n");
         writenbytes(connfd, bad_request, strlen(bad_request));
         close(connfd);
         return -1;
