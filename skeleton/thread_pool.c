@@ -25,6 +25,7 @@
 // }
 #define PARSE 1
 #define PROCESS 2
+#define KILL_THREAD 3
 
 
 
@@ -54,6 +55,8 @@ struct pool_t {
 
 static void *thread_do_work(pool_t* pool);
 pool_task_t* get_next_task(pool_t* pool);
+void queueDelete(pool_task_t* queue);
+
 
 /*
  * Create a threadpool, initialize variables, etc
@@ -120,6 +123,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     
     //create new node 
     pool_task_t* newRequest = (pool_task_t*)(malloc(sizeof(pool_task_t)));
+    printf("new node goes at %p \n",newRequest);
     newRequest->function = function;
     newRequest->argument = argument;
     newRequest->taskType = taskType;
@@ -147,7 +151,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     pthread_mutex_unlock(&(pool->lock));
     //printf("released lock on pool \n");
     
-    printf("Finished adding task,broadcasting \n");
+    printf("Finished adding task. Currently %d tasks. Located at %p ,broadcasting \n",pool->current_queue_size,pool->queue_head);
     pthread_cond_signal(&(pool->notify));
     return 0;
     
@@ -165,18 +169,23 @@ pool_task_t* get_next_task(pool_t *pool)
         return NULL;
     }
     
-    //return from tail
+    //get tail to return
     pool_task_t* temp;
     temp = pool->queue_tail;
     
     //set tail to previous
+    pool->queue_tail = temp->previous;
+    
+    //if it's not the only one, update the next to NULL
     if (pool->queue_tail!=NULL)
     {
         pool_task_t* tailNode = pool->queue_tail;
         tailNode->next = NULL;
     }
-
+    
+    //decrease the size
     pool->current_queue_size--;
+    
     //if down to 0, set head and tail to null
     if (pool->current_queue_size==0)
     {
@@ -193,13 +202,60 @@ pool_task_t* get_next_task(pool_t *pool)
  */
 int pool_destroy(pool_t *pool)
 {
+    printf("destroying thread pool\n");
     int err = 0;
- 
-    //return err;
-    //destroy the pool
-    //free memory, destroy threads
-    return err;
     
+    //send threads # to request
+    int i=0;
+    for (i=0;i<pool->thread_count;i++)
+    {
+        struct request req = {0,0,0,NULL};
+        pool_add_task(pool,3,NULL,NULL,0,req);
+    }
+    
+    for (i=0;i<pool->thread_count;i++)
+    {
+        
+        printf("joining thread %d\n",i);
+        if(pool->threads[i] != pthread_self())
+        {
+            pthread_join(pool->threads[i], NULL);
+        }
+        printf("joined \n");
+    }
+    // destroy mutex
+    pthread_mutex_destroy(&(pool->lock));
+    // destroy condition
+    pthread_cond_destroy(&(pool->notify));
+    //destroy queue
+    printf("destroying queue\n");
+    queueDelete(pool->queue_head);
+ 
+    //destroy pool
+    free((void*)pool->threads);
+    free((void*)pool);
+    
+    return err;
+}
+
+void queueDelete(pool_task_t* queue)
+{
+    //deletes the queue
+    if (queue==NULL)
+    {
+        printf("nothing left \n");
+        return;
+    }
+    
+    //go one by one, deleting the queue
+    pool_task_t* next = queue->next;
+    while (queue!=NULL)
+    {
+        next = queue->next;
+        free(queue);
+        queue = next;
+    }
+    return;
 }
 
 
@@ -229,8 +285,9 @@ static void *thread_do_work(pool_t *pool)
         {
             printf("got a task from the pool\n");
             printf("task type is %d \n",task->taskType);
-            //printf("task: %p\n",task);
+            printf("task: %p\n",task);
             //don't need it for now, so unlock it
+            printf("task tail is %p \n",pool->queue_tail);
             
             //if task is parsing, then parse it
             //and add the task to the stuff
@@ -242,24 +299,18 @@ static void *thread_do_work(pool_t *pool)
                 if (error==-1)
                 {
                     //bad request, return 0
-                    printf("bad request\n");
+                    printf("bad request. connection closed \n");
                     
                 }
                 else
                 {
-                    process_request(task->connfd,&(task->req));
-                    close(task->connfd);
+                    // struct request req = task->req;
+                    printf("adding process to task list \n");
+                    pool_add_task(pool,PROCESS,NULL,NULL,task->connfd,task->req);
                 }
-                //and add to the list 
-                // struct request req = task->req;
-                // printf("task is: %s \n",req.resource);
-                // //extract priority (not needed yet)
-                // printf("adding process task to list\n");
-                // pool_add_task(pool,PROCESS,NULL,NULL,task->connfd,task->req);
-
             }
             
-            else 
+            if (task->taskType==PROCESS)
             {
                 printf("-------- processing task \n");
                 struct request req = task->req;
@@ -267,10 +318,21 @@ static void *thread_do_work(pool_t *pool)
                 process_request(task->connfd,&(task->req));
                 close(task->connfd);
             }
+            if (task->taskType==KILL_THREAD)
+            {
+                //free task node
+                free(task);
+                
+                //return thread
+                pthread_exit(NULL);
+                return(NULL);
+                
+            }
 
             
             //free the node
             printf("freeing the location of task : %p\n",task);
+            // task->connfd = 0;
             free(task);
             
             //lock pool and get task
@@ -282,12 +344,8 @@ static void *thread_do_work(pool_t *pool)
         //lock it so we can wait
         printf("Nothing, so releasing\n");
         pthread_mutex_lock(&(pool->lock));
-        //no more tasks, so wait 
-        //printf("Waiting now \n");
         pthread_cond_wait(&(pool->notify),&(pool->lock));
         printf("Waking up! \n");
-        
-        
     }
 
     pthread_exit(NULL);

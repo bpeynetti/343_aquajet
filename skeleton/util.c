@@ -56,7 +56,7 @@ int parse_request(int connfd, struct request* req)
 
     //Only accept GET requests
     if (strncmp(instr, "GET", 3) != 0) {
-        printf("bad request\n");
+        printf("bad request. closing connection \n");
         writenbytes(connfd, bad_request, strlen(bad_request));
         close(connfd);
         return -1;
