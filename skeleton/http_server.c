@@ -32,7 +32,7 @@ int main(int argc,char *argv[])
     int flag, num_seats = 20;
     int connfd = 0;
     struct sockaddr_in serv_addr;
-
+   int num_threads = 4;
     char send_buffer[BUFSIZE];
     
     listenfd = 0; 
@@ -42,6 +42,11 @@ int main(int argc,char *argv[])
     if (argc > 1)
     {
         num_seats = atoi(argv[1]);
+//	num_threads = atoi(argv[2]);
+    }
+    if (argc > 2)
+    {
+	num_threads = atoi(argv[2]);
     } 
 
     if (server_port < 1500)
@@ -83,7 +88,7 @@ int main(int argc,char *argv[])
     listen(listenfd, 10);
 
     // TODO: Initialize your threadpool!
-    threadpool = pool_create(1000,8);
+    threadpool = pool_create(1000,num_threads);
     initialize_standby();
     // This while loop "forever", handling incoming connections
     while(1)
@@ -98,7 +103,7 @@ int main(int argc,char *argv[])
             The lines below will need to be modified! Some may need to be moved
             to other locations when you make your server multithreaded.
         *********************************************************************/
-        printf("\t\t Got new request! \n");
+      //  printf("\t\t Got new request! \n");
         //printf("%d",connfd);
         
         //add a request to parse to the threadpool
@@ -109,7 +114,7 @@ int main(int argc,char *argv[])
         arrival_time = clock();
         
         error = pool_add_task(threadpool,1,NULL,NULL,connfd,req,arrival_time);
-        printf("\t\t waiting for new request\n");
+       // printf("\t\t waiting for new request\n");
         if (error==-1)
         {
             //cannot handle request

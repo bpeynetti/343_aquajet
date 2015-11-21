@@ -1,7 +1,7 @@
 [configuration]
 type=performance
 threads=25
-requests=10
+requests=50
 sleeptime=0
 
 %trace run by "user"
