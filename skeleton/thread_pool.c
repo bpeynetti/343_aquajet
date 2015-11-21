@@ -17,7 +17,7 @@
  *  @var argument Argument to be passed to the function.
  */
 
-#define MAX_THREADS 20
+#define MAX_THREADS 200
 
 // enum task_t{
 //     PARSE,
