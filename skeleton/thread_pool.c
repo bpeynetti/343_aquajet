@@ -37,7 +37,7 @@ typedef struct {
     int  taskType;
     struct request req;
     int connfd;
-    int priority;
+    // enum priority_t priority;
     float arrival_time;
     
 } pool_task_t;
@@ -118,17 +118,6 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     //all we do here is add a task to the queue
     //if we implement priority queue, then add the proper way to a priority queue
     
-    int priority = 0;
-    if (taskType==PARSE)
-    {
-        priority=2;
-    }
-    else
-    {
-        priority = req.customer_priority;
-    }
-
-
     //hold on to the queue while I modify it
     //printf("Waiting for pool\n");
     pthread_mutex_lock(&(pool->lock));
@@ -156,74 +145,20 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     newRequest->connfd = connfd;
     newRequest->previous = NULL;
     newRequest->arrival_time=arrivalTime;
-    newRequest->priority = priority;
 
-
-    //insert into the correct place
-    //step through the list from head to tail, and insert right before its priority starts
     pool_task_t* headNode = pool->queue_head;
-
-    if (pool->current_queue_size==0)
+    
+    if (headNode!=NULL)
     {
-        //if nothing, then set as head and tail
-        pool->queue_head = newRequest;
-        pool->queue_tail = newRequest;
-    }
-    else
-    {
-
-        if ((priority==0)||(headNode->priority > priority))
-        {
-            //just put at the head
-            if (headNode!=NULL)
-            {
-                headNode->previous = newRequest;
-            }
-        
-            pool->queue_head = newRequest;
-
-            if (pool->current_queue_size==0)
-            {
-                pool->queue_tail = newRequest;
-            }
-        }
-        //now we know it's somewhere after the first node in the list
-        if (priority>0)
-        {
-            pool_task_t* curr = headNode;
-            int flag = 0;
-            while (curr!=NULL)
-            {
-                if (curr->priority >= priority)
-                {
-                    flag = 1;
-                    //just passed it, so add it in the middle of curr and curr->previous
-                    newRequest->previous = curr->previous;
-                    newRequest->next = curr;
-                    //and add links from the 2 nodes to it
-                    pool_task_t* prev = curr->previous;
-                    if (prev!=NULL)
-                    {
-                        prev->next = newRequest;
-                    }
-                    curr->previous = newRequest;
-                    break;
-                }
-                curr = curr->next;
-            }
-            //now, check if flag is up or not
-            if (flag==0)
-            {
-                // if (curr==headNode)
-                //did not add, so add to tail
-                pool_task_t* tail = pool->queue_tail;
-                tail->next = newRequest;
-                newRequest->previous = tail;
-                newRequest->next = NULL;
-            }
-        }
+        headNode->previous = newRequest;
     }
     
+    pool->queue_head = newRequest;
+    
+    if (pool->current_queue_size==0)
+    {
+        pool->queue_tail = newRequest;
+    }
     
     pool->current_queue_size++;
     //printf("releasing the lock on pool\n");
