@@ -166,6 +166,7 @@ void load_seats(int number_of_seats)
     for(i = 0; i < number_of_seats; i++)
     {   
         seat_t* temp = (seat_t*) malloc(sizeof(seat_t));
+        printf("seat at %p \n",temp);
         temp->id = i;
         temp->customer_id = -1;
         temp->state = AVAILABLE;
@@ -226,6 +227,7 @@ void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
     //adds node to standby list
     //malloc new node
     standby_node* newStandby = (standby_node*)(malloc(sizeof(standby_node)));
+    printf("new standby node at %p \n",newStandby);
     
     //put information in the node
     newStandby->customer_id = customer_id;

@@ -70,6 +70,7 @@ pool_t *pool_create(int queue_size, int num_threads)
 {
     printf("Creating pool \n");
     pool_t* pool = (pool_t*) malloc(sizeof(pool_t));
+    printf("Pool created at %p \n",pool);
     
     //initialize mutex for the pool
     pthread_mutex_init(&(pool->lock),NULL);
@@ -88,6 +89,7 @@ pool_t *pool_create(int queue_size, int num_threads)
     //create the threads
         //add a loop to create all threads (thread_count)
     pool->threads = (pthread_t*) malloc(sizeof(pthread_t)*pool->thread_count);
+    printf("threads at %p\n",pool->threads);
     int t=0;
     for (t=0;t<pool->thread_count;t++)
     {
@@ -136,6 +138,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     
     //create new node 
     pool_task_t* newRequest = (pool_task_t*)(malloc(sizeof(pool_task_t)));
+    printf("new task at %p \n",newRequest);
     //printf("new node goes at %p \n",newRequest);
     newRequest->function = function;
     newRequest->argument = argument;
