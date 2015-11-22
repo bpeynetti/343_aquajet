@@ -2,7 +2,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdio.h>
-#include <time.h>
 #include "util.h"
 #include "thread_pool.h"
 #include "seats.h"
@@ -17,7 +16,7 @@
  *  @var argument Argument to be passed to the function.
  */
 
-#define MAX_THREADS 8
+#define MAX_THREADS 10
 
 // enum task_t{
 //     PARSE,
@@ -38,8 +37,6 @@ typedef struct {
     struct request req;
     int connfd;
     // enum priority_t priority;
-    float arrival_time;
-    
 } pool_task_t;
 
 
@@ -53,8 +50,6 @@ struct pool_t {
   void* queue_head;
   void* queue_tail;
   int current_queue_size;
-  int total_requests;
-  float total_time_elapsed;
 };
 
 static void *thread_do_work(pool_t* pool);
@@ -77,7 +72,7 @@ pool_t *pool_create(int queue_size, int num_threads)
     //initialize pthread condition 
     pthread_cond_init(&(pool->notify),NULL);
     //initialize thread count
-    pool->thread_count = MAX_THREADS;
+    pool->thread_count = num_threads;
     //initialize limit of tasks
     pool->task_queue_size_limit = queue_size;
     pool->current_queue_size = 0;
@@ -91,16 +86,13 @@ pool_t *pool_create(int queue_size, int num_threads)
     int t=0;
     for (t=0;t<pool->thread_count;t++)
     {
-        printf("creating thread %d \n",t);
+        printf("creating thread %d \n",t+1);
         //assign the function and the arguments that each thread will take
         pthread_create(&(pool->threads[t]),NULL,(void*) &thread_do_work,(void*) pool);
     }
     //return the pool that you created
     pool->queue_head=NULL;
     pool->queue_tail=NULL;
-    
-    pool->total_requests = 0;
-    pool->total_time_elapsed = 0.00;
     
     pthread_mutex_unlock(&(pool->lock));
     printf("Created the pool and released lock\n");
@@ -112,22 +104,16 @@ pool_t *pool_create(int queue_size, int num_threads)
  * Add a task to the threadpool
  *
  */
-int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *argument,int connfd,struct request req, float arrivalTime)
+int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *argument,int connfd,struct request req)
 {
-    //printf("Adding task  \n");
+    printf("Adding task  \n");
     //all we do here is add a task to the queue
     //if we implement priority queue, then add the proper way to a priority queue
     
     //hold on to the queue while I modify it
-    //printf("Waiting for pool\n");
+    printf("Waiting for pool\n");
     pthread_mutex_lock(&(pool->lock));
-    
-    if (taskType==PARSE)
-    {
-        pool->total_requests++;
-    }
-    
-    //printf("Got the lock \n");
+    printf("Got the lock \n");
     //if size of queue is full, return -1
     if (pool->task_queue_size_limit==pool->current_queue_size){
         //too big, can't do this
@@ -136,7 +122,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     
     //create new node 
     pool_task_t* newRequest = (pool_task_t*)(malloc(sizeof(pool_task_t)));
-    //printf("new node goes at %p \n",newRequest);
+    printf("new node goes at %p \n",newRequest);
     newRequest->function = function;
     newRequest->argument = argument;
     newRequest->taskType = taskType;
@@ -144,8 +130,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     newRequest->next = NULL;
     newRequest->connfd = connfd;
     newRequest->previous = NULL;
-    newRequest->arrival_time=arrivalTime;
-
+    
     pool_task_t* headNode = pool->queue_head;
     
     if (headNode!=NULL)
@@ -165,7 +150,7 @@ int pool_add_task(pool_t* pool,int taskType, void (*function)(void *), void *arg
     pthread_mutex_unlock(&(pool->lock));
     //printf("released lock on pool \n");
     
-   // printf("Finished adding task. Currently %d tasks. Located at %p ,broadcasting \n",pool->current_queue_size,pool->queue_head);
+    printf("Finished adding task. Currently %d tasks. Located at %p ,broadcasting \n",pool->current_queue_size,pool->queue_head);
     pthread_cond_signal(&(pool->notify));
     return 0;
     
@@ -176,10 +161,10 @@ pool_task_t* get_next_task(pool_t *pool)
 {
     //note -> we need to free the node after we return it and extract the information!
     //this will just return and fix the list
-   // printf("getting a task, out of %d available\n",pool->current_queue_size);
+    printf("getting a task, out of %d available\n",pool->current_queue_size);
     if (pool->queue_head==NULL)
     {
-        //printf("no tasks \n");
+        printf("no tasks \n");
         return NULL;
     }
     
@@ -218,15 +203,13 @@ int pool_destroy(pool_t *pool)
 {
     printf("destroying thread pool\n");
     int err = 0;
-    //pthread_mutex_lock(&(pool->lock));
-       
     
     //send threads # to request
     int i=0;
     for (i=0;i<pool->thread_count;i++)
     {
         struct request req = {0,0,0,NULL};
-        pool_add_task(pool,3,NULL,NULL,0,req,0.0);
+        pool_add_task(pool,3,NULL,NULL,0,req);
     }
     
     for (i=0;i<pool->thread_count;i++)
@@ -237,22 +220,16 @@ int pool_destroy(pool_t *pool)
         {
             pthread_join(pool->threads[i], NULL);
         }
-        //printf("joined \n");
+        printf("joined \n");
     }
     // destroy mutex
-    //pthread_mutex_unlock(&(pool->lock));
     pthread_mutex_destroy(&(pool->lock));
     // destroy conditionj
     pthread_cond_destroy(&(pool->notify));
     //destroy queue
-    //printf("destroying queue\n"); 
+    printf("destroying queue\n"); 
     queueDelete(pool->queue_head);
  
-    printf("Total requests: %d \n",pool->total_requests);
-    float time_per_request;
-    time_per_request = pool->total_time_elapsed / pool->total_requests;
-    printf("Avg time per request: %f \n",time_per_request);
-    
     //destroy pool
     free((void*)pool->threads);
     free((void*)pool);
@@ -260,9 +237,6 @@ int pool_destroy(pool_t *pool)
     return err;
 }
 
-// Deletes the queue and all nodes still in the queue
-// if working properly, no elements should be in the queue
-// and all threads should have been joined by now.
 void queueDelete(pool_task_t* queue)
 {
     //deletes the queue
@@ -292,13 +266,13 @@ void queueDelete(pool_task_t* queue)
 static void *thread_do_work(pool_t *pool)
 { 
 
-    //printf("Waiting ... \n");
+    printf("Waiting ... \n");
     //lock it before you go into the loop, for unlocking later
     pthread_mutex_lock(&(pool->lock));
     while(1) {
         
         //lock the pool
-        // printf("locking the pool \n");
+         printf("locking the pool \n");
          //pthread_mutex_lock(&(pool->lock));
         // printf("got the lock on the pool \n");
         //get the function and argument
@@ -319,35 +293,29 @@ static void *thread_do_work(pool_t *pool)
             if (task->taskType==PARSE)
             {
                 //then ask for the parsing with task req as one of the arguments
-                //printf("------- Parsing task\n");
+                printf("------- Parsing task\n");
                 int error = parse_request(task->connfd,&(task->req));
                 if (error==-1)
                 {
                     //bad request, return 0
-                    //printf("bad request. connection closed \n");
-                    //add to pool total time
-                    float finish_time = clock();
-                    pool->total_time_elapsed += (finish_time - task->arrival_time) / CLOCKS_PER_SEC;
+                    printf("bad request. connection closed \n");
                     
                 }
                 else
                 {
                     // struct request req = task->req;
-                    //printf("adding process to task list \n");
-                    pool_add_task(pool,PROCESS,NULL,NULL,task->connfd,task->req,task->arrival_time);
+                    printf("adding process to task list \n");
+                    pool_add_task(pool,PROCESS,NULL,NULL,task->connfd,task->req);
                 }
             }
             
             if (task->taskType==PROCESS)
             {
-                //printf("-------- processing task \n");
-                //struct request req = task->req;
-                //printf("Task is: %s for user: %d, seat %d, priority: %d  \n",req.resource,req.user_id,req.seat_id,req.customer_priority);
+                printf("-------- processing task \n");
+                struct request req = task->req;
+                printf("Task is: %s for user: %d, seat %d, priority: %d  \n",req.resource,req.user_id,req.seat_id,req.customer_priority);
                 process_request(task->connfd,&(task->req));
                 close(task->connfd);
-                //finish so get time to request and add
-                float f_time = clock();
-                pool->total_time_elapsed += (f_time - task->arrival_time) / CLOCKS_PER_SEC;
             }
             if (task->taskType==KILL_THREAD)
             {
@@ -376,7 +344,7 @@ static void *thread_do_work(pool_t *pool)
         //printf("Nothing, so releasing\n");
         pthread_mutex_lock(&(pool->lock));
         pthread_cond_wait(&(pool->notify),&(pool->lock));
-       // printf("Waking up! \n");
+        printf("Waking up! \n");
     }
 
     pthread_exit(NULL);

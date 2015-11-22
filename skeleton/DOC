@@ -27,12 +27,39 @@ OTHER DESIGNS
 	To better test the performance of our program (without having to make every time we wanted to change the number of threads), we also allowed for an input argument when running the program to allow to modify the number of threads to run by. If none is given, then the program is run with 4 threads. 
 	usage: ./http_server <num_seats> <num_threads>
 	
-	**NOTE** The program that is being submitted does not have this implementation, and simply takes the number of threads based on the MAX_THREADS definition. 
+	**NOTE** The program that is being submitted does not have this implementation, and simply takes the number of threads based on the MAX_THREADS definition. We set MAX_THREADS = 8.  
 
 ------------------------------------------
 RESULTS
 
-	We successfully implemented the design of the server and completed all portions of the assignment. 
+	We successfully implemented the design of the server and completed all portions of the assignment.
+
+	Below, we included some results from running the server with multiple values of threads:
+THREADS AVG_TIME_PER_REQUEST
+1       0.001328
+2       0.000981
+3       0.000860
+4       0.000742
+5       0.000686
+6       0.000668
+7       0.000573
+8       0.000529
+9       0.000539
+10      0.000559
+11      0.000507
+12      0.000527
+14      0.000676
+16      0.000658
+18      0.000692
+20      0.000656
+25      0.000692
+30      0.000670
+35      0.000660
+
+	As we can see above, the initial time per request was relatively high (about 1.3ms) but as we increased the number of threads, we were able to bring that number down to a best result of 500 us (almost a 3x performance improvement). We also noticed that there was a steady drop in the marginal performance improvement as soon as we kept increasing the number of threads from 4 to 11. This is probably due to the fact that the computer that was running this program is dual-core with capacity for hyper-threading (4 cores). This essentially allows 4 threads to run simultaneously without interfering with each other. Nevertheless, the locking mechanism was not optimal and therefore, threads had to stop as soon as they tried to modified the same locked shared data. This is probably the reason why performance stopped increasing and eventually stalled. Additionally, performance decreased as we increased the number of threads past 11 because of the increased overhead (context switching) between the threads. Therefore, we can conclude that on the computer that we ran the tests, within the virtualbox configurations that we had, multithreading allowed for an improvement of almost 2.5x from single-threading. 
+
+	Note: We attempted to perform these tests in similar circumstances, but there is other software that we could not stop from running in the computer and thus that might have affected the performance of our tests. We attempted to close all windows and browsers to reduce the impact of other programs on our results. 
+
 
 
 

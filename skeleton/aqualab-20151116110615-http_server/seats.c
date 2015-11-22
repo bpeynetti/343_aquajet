@@ -213,11 +213,11 @@ char seat_state_to_char(seat_state_t state)
 
 void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
 {
-   // printf("adding to standby \n");
+    printf("adding to standby \n");
     //if standby is too big, say no
     if (standby_size==STANDBY_SIZE)
     {
-     //   printf("standby is full \n");
+        printf("standby is full \n");
         //list is full, return nothing
         return;
     }
@@ -226,7 +226,6 @@ void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
     //adds node to standby list
     //malloc new node
     standby_node* newStandby = (standby_node*)(malloc(sizeof(standby_node)));
-    printf("new standby node at %p \n",newStandby);
     
     //put information in the node
     newStandby->customer_id = customer_id;
@@ -257,10 +256,10 @@ void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
 //assigns from standby list if possible
 standby_node* get_standby(char* buf,int bufsize,int seat_id)
 {
-  // printf("Finding free from standby\n");
+   printf("Finding free from standby\n");
    if (standby_list==NULL)
    {
-    //   printf("standby is empty\n");
+       printf("standby is empty\n");
        //no tasks
        return NULL;
    }
@@ -272,7 +271,7 @@ standby_node* get_standby(char* buf,int bufsize,int seat_id)
    while ((temp!=NULL)&&(temp->seat_id!=seat_id))
    {
        //look for the seat
-   //    printf("checking seat %d \n",temp->seat_id);
+       printf("checking seat %d \n",temp->seat_id);
        temp = temp->previous;
    }
    
