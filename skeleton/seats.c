@@ -48,7 +48,7 @@ void list_seats(char* buf, int bufsize)
         snprintf(buf, bufsize, "No seats not found\n\n");
 }
 
-void no_empty_seats()
+bool no_empty_seats()
 {
     //returns true if there are no empty seats
     seat_t* curr = seat_header;
@@ -78,16 +78,13 @@ void view_seat(char* buf, int bufsize,  int seat_id, int customer_id, int custom
                 curr->id, seat_state_to_char(curr->state));
                 curr->state = PENDING;
                 curr->customer_id = customer_id;
-                pthread_mutex_lock(&empty_seat_mutex);
-                empty_seats--;
-                pthread_mutex_unlock(&empty_seat_mutex);
             }
             else
             {
                 snprintf(buf, bufsize, "Seat unavailable\n\n");
                 //
                 // add to standby list if no seats are available
-                if (no_empty_seats())
+                if (no_empty_seats()==true)
                 {
                     sem_wait(&standby_sem);
                     add_to_standby(buf,bufsize,seat_id,customer_id);
