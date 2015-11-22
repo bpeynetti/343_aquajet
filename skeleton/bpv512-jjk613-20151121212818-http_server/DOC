@@ -1,0 +1,70 @@
+---------------
+REPORT - SERVER - PROJECT 3
+
+Bruno Peynetti Velazquez - bpv512
+Jacob Kobza - jjk613
+
+EECS 343 - Operating Systems 
+
+---------------------
+
+We implemented all components of the project. We will now proceed to explain our algorithmic and data structues decisions:
+
+Work Queue
+	We implemented a simple Queue function that holds all the requests in a queue, which are then processed by the working threads. The Queue is implemented in a doubly linked list data structure, with pointers to both the head and the tail. The queue adds elements to the front (head) and removes from the tail. This was an easy implementation and relatively straight forward to adapt with the priority list extra credit. Each node in the list is a struct with information regarding the type of request (PARSE,PROCESS), the arrival time of the request, the actual request (if it has been parsed), the connfd, priority, and pointers to next and previous. 
+
+Stanby List
+	We implemented a standby list in the same way we implemented the work queue. We add elements to the head of the list and remove from the tail. Nevertheless, in the standby list elements are not always removed from the tail. Therefore, we added the required algorithm to remove a node from any position within the doubly linked list. Because it is a doubly linked list, removing elements is relatively simple, with only corner cases and one general case, and little overhead. Obviously the loss here is additionall data for the pointers, but we felt that this was negligible compared to the ease of implementation of adding and removing from the list. Note also that since we used a queue, the timing of the requests in the standby list was maintained (we always look at the nodes that were added first initially and step until the most recently added) -> we do this by adding nodes to the head, and starting any search from the tail, linearly. 
+
+Mutual Exclusion
+	We implemented resource mutual exclusion through mutexes. We implemented mutexes to lock 2 types of resources:
+	1. Thread Pool -> we have a lock on the thread pool that we use whenever we are adding or removing nodes from the worker queue, when we modify variable values, when we create the threads, and when we destoy the pool. 
+	2. Seats -> We have a mutex in each seat, thus allowing two threads to simulateously acquire locks for different seats. The lock is acquired only when the search for the seat returns TRUE (once the seat is found), since otherwise the search through the queue would stop if a read required a mutex. We are able to do this because we know that our seat list is not going to change (seats will not be added or deleted). 
+	
+	We also implemented a semaphore as mentioned in the project specification, in order to lock and unlock the standby list (and therefore maintain exclusion of the shared resource). Since we did not know the size of the standby list (we only know the maximum size), we implemented the semaphore for the standby list as a whole rather than each element. The implementation of the semaphore was using mutex and conditions (as learned in class). 
+
+OTHER DESIGNS
+	To better test the performance of our program (without having to make every time we wanted to change the number of threads), we also allowed for an input argument when running the program to allow to modify the number of threads to run by. If none is given, then the program is run with 4 threads. 
+	usage: ./http_server <num_seats> <num_threads>
+	
+	**NOTE** The program that is being submitted does not have this implementation, and simply takes the number of threads based on the MAX_THREADS definition. We set MAX_THREADS = 8.  
+
+------------------------------------------
+RESULTS
+
+	We successfully implemented the design of the server and completed all portions of the assignment.
+
+	Below, we included some results from running the server with multiple values of threads:
+THREADS AVG_TIME_PER_REQUEST
+1       0.001328
+2       0.000981
+3       0.000860
+4       0.000742
+5       0.000686
+6       0.000668
+7       0.000573
+8       0.000529
+9       0.000539
+10      0.000559
+11      0.000507
+12      0.000527
+14      0.000676
+16      0.000658
+18      0.000692
+20      0.000656
+25      0.000692
+30      0.000670
+35      0.000660
+
+	As we can see above, the initial time per request was relatively high (about 1.3ms) but as we increased the number of threads, we were able to bring that number down to a best result of 500 us (almost a 3x performance improvement). We also noticed that there was a steady drop in the marginal performance improvement as soon as we kept increasing the number of threads from 4 to 11. This is probably due to the fact that the computer that was running this program is dual-core with capacity for hyper-threading (4 cores). This essentially allows 4 threads to run simultaneously without interfering with each other. Nevertheless, the locking mechanism was not optimal and therefore, threads had to stop as soon as they tried to modified the same locked shared data. This is probably the reason why performance stopped increasing and eventually stalled. Additionally, performance decreased as we increased the number of threads past 11 because of the increased overhead (context switching) between the threads. Therefore, we can conclude that on the computer that we ran the tests, within the virtualbox configurations that we had, multithreading allowed for an improvement of almost 2.5x from single-threading. 
+
+	Note: We attempted to perform these tests in similar circumstances, but there is other software that we could not stop from running in the computer and thus that might have affected the performance of our tests. We attempted to close all windows and browsers to reduce the impact of other programs on our results. 
+
+
+
+
+
+
+
+
+-----------------------------------------

@@ -17,7 +17,6 @@ standby_node* standby_list;
 standby_node* standby_tail;
 m_sem_t standby_sem;
 
-
 char seat_state_to_char(seat_state_t);
 
 //adds to standby list
@@ -48,22 +47,6 @@ void list_seats(char* buf, int bufsize)
         snprintf(buf, bufsize, "No seats not found\n\n");
 }
 
-void no_empty_seats()
-{
-    //returns true if there are no empty seats
-    seat_t* curr = seat_header;
-    while (curr != NULL)
-    {
-        if (curr->state==AVAILABLE)
-        {
-            return false;
-        }
-        curr = curr->next;
-    }
-    return true;
-}
-
-
 void view_seat(char* buf, int bufsize,  int seat_id, int customer_id, int customer_priority)
 {
     seat_t* curr = seat_header;
@@ -78,21 +61,15 @@ void view_seat(char* buf, int bufsize,  int seat_id, int customer_id, int custom
                 curr->id, seat_state_to_char(curr->state));
                 curr->state = PENDING;
                 curr->customer_id = customer_id;
-                pthread_mutex_lock(&empty_seat_mutex);
-                empty_seats--;
-                pthread_mutex_unlock(&empty_seat_mutex);
             }
             else
             {
                 snprintf(buf, bufsize, "Seat unavailable\n\n");
                 //
-                // add to standby list if no seats are available
-                if (no_empty_seats())
-                {
-                    sem_wait(&standby_sem);
-                    add_to_standby(buf,bufsize,seat_id,customer_id);
-                    sem_post(&standby_sem);
-                }
+                // add to standby list
+                sem_wait(&standby_sem);
+                add_to_standby(buf,bufsize,seat_id,customer_id);
+                sem_post(&standby_sem);
                 //
                 //
                 
@@ -244,9 +221,6 @@ void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
         //list is full, return nothing
         return;
     }
-
-    //check if all seats have been assigned
-
     
     
     //adds node to standby list
