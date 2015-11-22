@@ -226,7 +226,7 @@ void add_to_standby(char* buf,int bufsize,int seat_id,int customer_id)
     //adds node to standby list
     //malloc new node
     standby_node* newStandby = (standby_node*)(malloc(sizeof(standby_node)));
-    printf("new standby node at %p \n",newStandby);
+   // printf("new standby node at %p \n",newStandby);
     
     //put information in the node
     newStandby->customer_id = customer_id;
